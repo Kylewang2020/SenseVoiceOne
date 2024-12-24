@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"name": "examples",
+			"path": "../examples"
+		},
+		{
+			"name": "SenseVoiceOne",
+			"path": "."
+		}
+	],
+	"settings": {
+		"cSpell.words": [
+			"pyaudio"
+		],
+		"search.followSymlinks": false,
+		"files.watcherExclude": {
+			"**/.cache/**": true,
+			"**/.git/**": true
+		},
+		"workbench.editor.enablePreview": false,
+		"terminal.integrated.gpuAcceleration": "off",
+		"terminal.integrated.customGlyphs": false,
+		"typescript.tsserver.maxTsServerMemory": 512
+	}
+}

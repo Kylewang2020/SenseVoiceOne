@@ -1,0 +1,5 @@
+From HuggingFace
+
+https://huggingface.co/lovemefan/SenseVoice-onnx/tree/main
+
+lovemefan/SenseVoice-onnx
