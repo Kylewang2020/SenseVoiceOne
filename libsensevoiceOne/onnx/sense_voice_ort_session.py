@@ -134,9 +134,7 @@ class SenseVoiceInferenceSession:
             device_id=device_id,
             intra_op_num_threads=intra_op_num_threads,
         )
-        logging.info(
-            f"Loading {encoder_model_file} takes {time.time() - start:.2f} seconds"
-        )
+        logging.info(f"Loading {encoder_model_file} takes {time.time() - start:.2f} seconds")
         self.blank_id = 0
         self.sp = spm.SentencePieceProcessor()
         self.sp.load(bpe_model_file)

@@ -1,0 +1,6 @@
+yaml
+numpy
+soundfile
+kaldi_native_fbank
+sentencepiece
+onnxruntime

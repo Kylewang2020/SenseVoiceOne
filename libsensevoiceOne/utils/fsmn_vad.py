@@ -14,8 +14,8 @@ import numpy as np
 import soundfile as sf
 import yaml
 
-from lib.onnx.fsmn_vad_ort_session import VadOrtInferRuntimeSession
-from lib.utils.frontend import WavFrontend
+from libsensevoiceOne.onnx.fsmn_vad_ort_session import VadOrtInferRuntimeSession
+from libsensevoiceOne.utils.frontend import WavFrontend
 
 
 def read_yaml(yaml_path: Union[str, Path]) -> Dict:

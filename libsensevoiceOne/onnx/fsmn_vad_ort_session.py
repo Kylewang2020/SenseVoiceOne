@@ -41,7 +41,7 @@ class VadOrtInferRuntimeSession:
 
         config["model_path"] = root_dir / str(config["model_path"])
         self._verify_model(config["model_path"])
-        logging.info(f"Loading onnx model at {str(config['model_path'])}")
+        logging.debug(f"Loading onnx model at {str(config['model_path'])}")
         self.session = InferenceSession(
             str(config["model_path"]), sess_options=sess_opt, providers=EP_list
         )
