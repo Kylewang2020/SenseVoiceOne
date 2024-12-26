@@ -225,14 +225,25 @@ class SenseVoiceOne(object):
         音频文件加载或数据处理,
         结果是ndarry, shape:(channels x frames), 均一化[-1,1], 数据类型是"float32"
         """
-        waveform, sr = soundfile.read(audio, dtype="float32", always_2d=True)
-        waveform = waveform.T
-        # assert(sr==16000), f"只支持16000Hz采样频率, 实际是:{sr}Hz"
-        if waveform.shape[0] == 2 and isMone:
-            waveform = waveform.mean(axis=0).reshape(1, -1)
-        if sr != 16000:
-            waveform = librosa.resample(waveform, orig_sr=sr, target_sr=16000)
-        audioArray = np.ascontiguousarray(waveform)
+        if isinstance(audio, os.PathLike):
+            waveform, sr = soundfile.read(audio, dtype="float32", always_2d=True)
+            waveform = waveform.T
+            # assert(sr==16000), f"只支持16000Hz采样频率, 实际是:{sr}Hz"
+            if waveform.shape[0] == 2 and isMone:
+                waveform = waveform.mean(axis=0).reshape(1, -1)
+            if sr != 16000:
+                waveform = librosa.resample(waveform, orig_sr=sr, target_sr=16000)
+            audioArray = np.ascontiguousarray(waveform)
+        elif isinstance(audio, np.ndarray):
+            if audio.ndim==1:
+                audio = audio.reshape(1, -1)
+            if audio.ndim!=2:
+                raise RuntimeError(f"音频文件加载错误的数据. 只能是1、2维数组. 实际是:{audio.ndim}")
+            if audio.shape[0]>audio.shape[1]:
+                audio = audio.T
+            if audio.shape[0] == 2 and isMone:
+                audio = audio.mean(axis=0).reshape(1, -1)
+            audioArray = audio
         return audioArray
 
     def res_re(self, result:str)->dict:
