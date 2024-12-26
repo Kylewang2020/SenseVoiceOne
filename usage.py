@@ -7,8 +7,8 @@ if __name__ == "__main__":
     logInit(logLevel=logging.INFO)
 
     senseVoice_model_dir = "./resources/SenseVoice"
-    senseVoice_model_file = "sense-voice-encoder.onnx"
-    # senseVoice_model_file = "sense-voice-encoder-int8.onnx"
+    # senseVoice_model_file = "sense-voice-encoder.onnx"
+    senseVoice_model_file = "sense-voice-encoder-int8.onnx"
     # senseVoice_model_file = "model_quant.onnx"
     device = -1
     num_threads = 4
