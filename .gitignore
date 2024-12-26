@@ -2,3 +2,4 @@ test
 /*.bat
 /resources/SenseVoice/*.onnx
 /log
+__pycache__
