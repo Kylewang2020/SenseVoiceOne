@@ -140,6 +140,7 @@ class SenseVoiceInferenceSession:
         self.sp.load(bpe_model_file)
 
     def inference(self, speech, language: int, use_itn: bool) -> np.ndarray:
+        logging.debug(f"inference start")
         language_query = self.embedding[[[language]]]
         
         # 14 means with itn, 15 means without itn

@@ -9,9 +9,14 @@ def logInit(LogFileName="one.log", isDaemon=False, logLevel=logging.DEBUG):
     LogFileName = os.path.join(logPath, LogFileName)
     curLog = logging.getLogger()
     curLog.setLevel(level = logLevel)
-    formatter = logging.Formatter(
-        fmt = '[%(levelname)-5s|%(asctime)s.%(msecs)03d|%(filename)s-%(funcName)s:%(lineno)3d] %(message)s',
-        datefmt = '%m-%d %H:%M:%S')
+    if logLevel > logging.DEBUG:
+        formatter= logging.Formatter(
+            fmt = '[%(levelname)-5s|%(asctime)s.%(msecs)03d|%(thread)s|%(lineno)03d@%(funcName)-9s]: %(message)s',
+            datefmt='%m-%d %H:%M:%S')
+    else:
+        formatter = logging.Formatter(
+            fmt = '[%(levelname)-5s|%(asctime)s.%(msecs)03d|%(thread)s|%(filename)s:%(lineno)3d@%(funcName)-9s]: %(message)s',
+            datefmt = '%m-%d %H:%M:%S')
     handler = logging.FileHandler(LogFileName, encoding="utf-8")
     handler.setFormatter(formatter)
     curLog.addHandler(handler)
@@ -19,4 +24,4 @@ def logInit(LogFileName="one.log", isDaemon=False, logLevel=logging.DEBUG):
         console = logging.StreamHandler()
         console.setFormatter(formatter)
         curLog.addHandler(console)
-    logging.debug("logger is ready")
+    logging.debug(f"logger ok. file: {LogFileName}. logLevel:{logLevel}")

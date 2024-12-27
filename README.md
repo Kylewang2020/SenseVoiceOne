@@ -3,7 +3,7 @@
 ## Introduction
 
 - 是针对SenseVoice-small 之 onnx 模型的 python 类定义和实现。
-- 简单、易用, 模拟OpenAi-whisper的调用方式。
+- 简单、易用, 类似于OpenAi-whisper的调用方式。
 - 是使用和理解[SenseVoice-python](https://github.com/lovemefan/SenseVoice-python)项目的一个记录和测试。
 - 重新封装了调用接口, 方便作为一个新的引用, 使用在其他项目中。
 

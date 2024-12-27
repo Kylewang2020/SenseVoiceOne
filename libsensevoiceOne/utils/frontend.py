@@ -7,6 +7,7 @@ from typing import Tuple, Union
 import kaldi_native_fbank as knf
 import numpy as np
 import soundfile as sf
+import logging
 
 
 class WavFrontend:
@@ -136,9 +137,9 @@ class WavFrontend:
         return inputs
 
     def get_features(self, inputs: Union[str, np.ndarray]) -> Tuple[np.ndarray, int]:
+        logging.debug(f"get_features...")
         if isinstance(inputs, str):
             inputs, _ = self.load_audio(inputs)
-
         fbank, _ = self.fbank(inputs)
         feats = self.apply_cmvn(self.apply_lfr(fbank, self.lfr_m, self.lfr_n))
         return feats

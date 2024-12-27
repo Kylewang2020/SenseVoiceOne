@@ -17,6 +17,12 @@ import soundfile
 import numpy as np
 import librosa
 from typing import Union, Tuple
+
+if __name__ == "__main__":
+    import sys
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.insert(0, project_root)
+
 from libsensevoiceOne.onnx.sense_voice_ort_session import SenseVoiceInferenceSession
 from libsensevoiceOne.utils.frontend import WavFrontend
 from libsensevoiceOne.utils.fsmn_vad import FSMNVad
@@ -48,7 +54,6 @@ class SenseVoiceOne(object):
                             device, n_threads,
                             front_dir, cmvn_file,
                             is_vad, vad_dir)
-
 
     def load_model(self, 
         senseVoice_model_file:str = "sense-voice-encoder-int8.onnx", 
@@ -105,7 +110,6 @@ class SenseVoiceOne(object):
 
         self.isInit = True
 
-
     def __load_ss_model(self, 
         model_dir, model_file, 
         embedding_model_file, bpe_model_file, 
@@ -133,15 +137,15 @@ class SenseVoiceOne(object):
             intra_op_num_threads=n_threads,)
         logging.debug(f"SenseVoiceInferenceSession ready")
 
-
     def transcribe(
         self, 
         audio: Union[os.PathLike, np.ndarray], 
         language:str="auto", 
         use_itn:bool=True,
         use_vad:bool=True,
-        ForceMono:bool=True
-        )->dict:
+        ForceMono:bool=True,
+        str_result:bool=True
+        )->Union[dict, str]:
         '''Transcribe an audio file using Whisper. 音频文件的加载、处理、转文字.
         
         By default, it will load all the needs file from ./resources folder. 
@@ -149,10 +153,10 @@ class SenseVoiceOne(object):
 
         Parameters
         ----------
-        audio:os.PathLike
-            The audio file path or ndarry from audion wareform. For the input for VAD&ASR model.
-            Data rerequirment:
-              sample_rate:16k; dtype: float32; channels=1; value:[-1, 1]
+        audio : Union[os.PathLike, np.ndarray]
+            :os.PathLike: The audio file path . For the input for VAD&ASR model.
+            :ndarry from audio wareformData rerequirment:
+              sample_rate:16k; dtype: float32; channels=1; value:[-1, 1]; 
         language : str
             "auto": 0, "zh": 3, "en": 4, "yue": 7, "ja": 11, "ko": 12, "nospeech": 13
         use_itn : bool
@@ -162,59 +166,70 @@ class SenseVoiceOne(object):
             False: not use the Vad. No matter what had been set in model init.
         ForceMono : bool
             是否强制单声道。如果是, 则对双声道数据进行简单平均, 单声道数据保持不变。
+        str_result: bool
+            是否只是返回文字结果。
 
-        Returns
+        Returns: Union[dict, str]
         -------
-        A dictionary containing the resulting text ("text") and segment-level details ("segments"), and
-        the spoken language ("language"), which is detected when `decode_options["language"]` is None.
-        result: {"isVad":False, "channels":1, "language":"auto", 
-                 "segments":[ { "channel":0, 
-                                "parts":[{"times":[0.00, 1.96], "tags":{}, "text":{...}},
-                                         {"times":[3.01, 8.96], "tags":{}, "text":{...}}]
-                              },
-                              { "channel":1, 
-                                "parts":[ { "times":[1.01, 3.96], "tags":{}, "text":{...} },
-                                          { "times":[6.06, 9.99], "tags":{}, "text":{...} }]
-                              }
-                            ]
-                }
+        :dict: if the str_result is False.
+            a dictionary containing the resulting text ("text") and segment-level details ("segments"), and
+            the spoken language ("language"), which is detected when `decode_options["language"]` is None.
+            result: {"isVad":False, "channels":1, "language":"auto", 
+                    "segments":[ { "channel":0, 
+                                    "parts":[{"times":[0.00, 1.96], "tags":{}, "text":{...}},
+                                            {"times":[3.01, 8.96], "tags":{}, "text":{...}}]
+                                },
+                                { "channel":1, 
+                                    "parts":[ { "times":[1.01, 3.96], "tags":{}, "text":{...} },
+                                            { "times":[6.06, 9.99], "tags":{}, "text":{...} }]
+                                }
+                                ]
+                    }
+        :str: if the str_result is True.
+            a text result only. Equal to the sum of dict["segments"][0]["parts"] "text" items.
         '''
         waveform = self.load_audio(audio, ForceMono)
         result = {"isVad":False, "channels":1, "language":"auto", "segments":[]}
         result["language"] = language
         result["channels"] = waveform.shape[0]
         # segment = {"time":None, "tags":None, "text":None}
-        if self.isVad and use_vad:
+        if self.isVad and use_vad:  # 使用语音检测
+            logging.debug("use vad")
             result["isVad"] = True
             for i in range(waveform.shape[0]):
                 channel_data = waveform[i]
                 segments = self.vad.segments_offline(channel_data)
                 segmentsRes = {"channel":i, "parts":[]}
                 for part in segments:
+                    logging.debug("part process start")
                     audio_feats = self.front.get_features(channel_data[part[0]*16 : part[1]*16])
                     asr_result = self.model.inference(audio_feats[None, ...],
                                     language=languages[language], use_itn=use_itn,)
                     res = self.res_re(asr_result)
                     res['time'] = [part[0]/1000, part[1]/1000]
-                    logging.debug(f"[{res['time'][0]}s-{res['time'][1]}s] tags: {res['tags']}")
-                    logging.info(f"[{res['time'][0]}s-{res['time'][1]}s] text: {res['text']}")
                     segmentsRes["parts"].append(res)
+                    logging.debug(f"ch{i}-[{res['time'][0]}s-{res['time'][1]}s] tags: {res['tags']}")
+                    logging.debug(f"ch{i}-[{res['time'][0]}s-{res['time'][1]}s] text: {res['text']}")
                 self.vad.vad.all_reset_detection()
                 result["segments"].append(segmentsRes)
         else:
-            segmentsRes = {"channel":0, "parts":[]}
-            channel_data = waveform[0]
-            audio_feats = self.front.get_features(channel_data)
-            asr_result = self.model.inference(
-                audio_feats[None, ...],
-                language=languages[language],
-                use_itn=use_itn,)
-            res = self.res_re(asr_result)
-            res['time'] = [0, round(len(channel_data)/16000, 2)]
-            segmentsRes["parts"].append(res)
-            logging.debug(f"tags: {res['tags']}")
-            logging.info(f"text: {res['text']}")
-            result["segments"].append(segmentsRes)
+            for i in range(waveform.shape[0]):
+                segmentsRes = {"channel":i, "parts":[]}
+                channel_data = waveform[i]
+                audio_feats = self.front.get_features(channel_data)
+                asr_result = self.model.inference(
+                                            audio_feats[None, ...],
+                                            language = languages[language],
+                                            use_itn = use_itn,)
+                res = self.res_re(asr_result)
+                res['time'] = [0, round(len(channel_data)/16000, 2)]
+                segmentsRes["parts"].append(res)
+                result["segments"].append(segmentsRes)
+                logging.debug(f"ch{i}-tags: {res['tags']}")
+                logging.debug(f"ch{i}-text: {res['text']}")
+        
+        if str_result:
+            return self.dict2str(result)
         return result
 
     def load_audio(self, 
@@ -222,31 +237,49 @@ class SenseVoiceOne(object):
         isMone:bool
         )-> np.ndarray:
         """
-        音频文件加载或数据处理,
-        结果是ndarry, shape:(channels x frames), 均一化[-1,1], 数据类型是"float32"
+        Audio data process from the audio file or numpy ndarray.
+        Secure a standard np.ndarray for the next process.
+
+        Parameters
+        ---------
+        audio: Union[os.PathLike, np.ndarray]
+            :os.PathLike: file path. It will be resampled to 16k HZ if the sr isn't 16k.
+            :np.ndarray: it's suggested that the array shape=(channels, frames) 
+        
+        Return
+        ---------
+        ndarray: shape:(channels x frames); data range:[-1,1]; dtype=np.float32
         """
-        if isinstance(audio, os.PathLike):
+        
+        if isinstance(audio, (os.PathLike, str)):  # 音频文件加载
             waveform, sr = soundfile.read(audio, dtype="float32", always_2d=True)
             waveform = waveform.T
-            # assert(sr==16000), f"只支持16000Hz采样频率, 实际是:{sr}Hz"
             if waveform.shape[0] == 2 and isMone:
                 waveform = waveform.mean(axis=0).reshape(1, -1)
             if sr != 16000:
                 waveform = librosa.resample(waveform, orig_sr=sr, target_sr=16000)
             audioArray = np.ascontiguousarray(waveform)
-        elif isinstance(audio, np.ndarray):
+            logging.debug(f"from file:{audio}. sr={sr}. res Arr shape={audioArray.shape}")
+        elif isinstance(audio, np.ndarray):  # ndarray标准化
+            logging.debug(f"from ndarray. input Arr shape={audio.shape}")
             if audio.ndim==1:
                 audio = audio.reshape(1, -1)
             if audio.ndim!=2:
                 raise RuntimeError(f"音频文件加载错误的数据. 只能是1、2维数组. 实际是:{audio.ndim}")
             if audio.shape[0]>audio.shape[1]:
                 audio = audio.T
-            if audio.shape[0] == 2 and isMone:
+            if audio.shape[0] > 1 and isMone:
                 audio = audio.mean(axis=0).reshape(1, -1)
             audioArray = audio
+            logging.debug(f"from ndarray. res Arr shape={audioArray.shape}")
+        else:
+            raise ValueError(f"audio 参数必须是文件路径或 NumPy 数组. type(audio)={type(audio)}")
         return audioArray
 
     def res_re(self, result:str)->dict:
+        """
+        使用正则表达式匹配标签和文本内容, 结构化结果输出
+        """
         resDict = {"time":None, "tags":None, "text":None}
         # 使用正则表达式匹配标签和文本内容
         pattern = r"<\|([^|]+)\|>"  # 匹配 <|...|> 中的内容
@@ -256,4 +289,34 @@ class SenseVoiceOne(object):
         resDict["tags"] = tags
         resDict["text"] = text
         return resDict
+    
+    def dict2str(self, res:dict)->str:
+        txt = ""
+        for part in res['segments'][0]["parts"]:
+            txt += part["text"]
+        return txt
+    
+if __name__ == "__main__":
+    from libsensevoiceOne.log import logInit
+    logInit(logLevel=logging.DEBUG)
 
+    senseVoice_model_dir = "./resources/SenseVoice"
+    # senseVoice_model_file = "sense-voice-encoder.onnx"
+    senseVoice_model_file = "sense-voice-encoder-int8.onnx"
+    # senseVoice_model_file = "model_quant.onnx"
+    device = -1
+    num_threads = 4
+    
+    # audio_path = "./data/asr_example_zh.wav"
+    audio_path = "./data/chinese01.wav"
+    # audio_path = "./data/english01.wav"
+    # audio_path = "./data/example_zh.mp3"    # 48000Hz 5s
+
+    language = "auto"
+    # language = "zh"
+
+    ssOnnx = SenseVoiceOne()
+    ssOnnx.load_model(senseVoice_model_file=senseVoice_model_file)
+    res = ssOnnx.transcribe(audio_path, language=language, use_itn=True, 
+                            use_vad=True, ForceMono=False)
+    print(res)

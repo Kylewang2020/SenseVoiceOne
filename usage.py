@@ -4,7 +4,7 @@ from libsensevoiceOne.model import SenseVoiceOne
 
 if __name__ == "__main__":
     from libsensevoiceOne.log import logInit
-    logInit(logLevel=logging.INFO)
+    logInit(logLevel=logging.DEBUG)
 
     senseVoice_model_dir = "./resources/SenseVoice"
     # senseVoice_model_file = "sense-voice-encoder.onnx"
